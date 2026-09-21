@@ -118,7 +118,7 @@ jobs:
           publish_dir: ./playwright-report
           keep_files: true
 
-      - name: 📧 Send Email Notification
+         -name: 📧 Send Email Notification
         uses: dawidd6/action-send-mail@v3
         if: always()
         with:
@@ -126,11 +126,11 @@ jobs:
           server_port: ${{ secrets.SMTP_PORT }}
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          subject: "GitHub Actions: Playwright Tests Failed"
+          subject: "GitHub Actions: Playwright Tests - ${{ needs.test.result }}"
           to: ${{ secrets.EMAIL_RECIPIENT }}
           from: "CI/CD Pipeline"
           body: |
-            The E2E test execution has failed for one or more browsers in the matrix.
+            🛎️The E2E test execution finished with status: ${{ needs.test.result }}
             
-            You can review the full consolidated Playwright report on GitHub Pages:
+            You can review the full consolidated Playwright report on GitHub Pages 🚀:
             https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
