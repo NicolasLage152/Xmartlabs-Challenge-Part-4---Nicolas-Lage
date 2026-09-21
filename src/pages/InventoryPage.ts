@@ -1,12 +1,6 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 import { parsePrice } from '../utils/priceUtils';
 
-/**
- * InventoryPage — Encapsulates the SauceDemo product listing page (/inventory.html).
- *
- * Provides methods to interact with the product grid: selecting products,
- * adding items to cart, and navigating to the cart.
- */
 export class InventoryPage {
   readonly page: Page;
   readonly inventoryItems: Locator;
@@ -22,19 +16,16 @@ export class InventoryPage {
     this.pageTitle = page.locator('[data-test="title"]');
   }
 
-  /**
-   * Assert that we are on the inventory page and it has loaded.
-   */
   async expectToBeVisible(): Promise<void> {
     await expect(this.pageTitle).toHaveText('Products');
   }
 
   /**
-   * Click on a product's name/image link to navigate to its detail page.
-   * Uses the item name for a readable, intention-revealing selector.
-   *
-   * @param productName - The exact display name of the product (e.g., "Sauce Labs Backpack")
-   */
+   
+   
+   
+    @param productName 
+   
   async openProductDetail(productName: string): Promise<void> {
     const productLink = this.page.locator('[data-test="inventory-item"]')
       .filter({ hasText: productName })

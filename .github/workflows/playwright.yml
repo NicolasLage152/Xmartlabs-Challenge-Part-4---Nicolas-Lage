@@ -1,12 +1,12 @@
 name: Playwright E2E Tests
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
   schedule:
-    # Nightly Scheduled Runs (Cron): Executes full test suite every night at 3:00 AM
     - cron: '0 3 * * *'
 
 jobs:
@@ -15,7 +15,6 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     
-    # Matrix Strategy: Parallel execution across multiple browser engines
     strategy:
       fail-fast: false
       matrix:
@@ -41,7 +40,6 @@ jobs:
         id: playwright-version
         run: echo "PLAYWRIGHT_VERSION=$(npx playwright --version | awk '{print $2}')" >> $GITHUB_ENV
 
-      # Smart Caching: Cache Playwright browser binaries to reduce execution time
       - name: 🧠 Cache Playwright Browsers
         uses: actions/cache@v4
         id: playwright-cache
@@ -74,10 +72,8 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      # Cloud Deployment for Reports
       - name: 🚀 Deploy to GitHub Pages (Chromium Only)
         uses: peaceiris/actions-gh-pages@v4
-        # Deploying only from one matrix job to prevent race conditions during GH Pages publish
         if: ${{ !cancelled() && matrix.browser == 'chromium' && github.event_name != 'pull_request' }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

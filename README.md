@@ -268,6 +268,7 @@ To run the pipeline successfully, configure the following **Repository Secrets**
 ## ☁️ Cloud Deployment (Test Reporting)
 
 Visibility into test results is critical. This project automates the publication and cloud hosting of test reports to make them accessible to stakeholders without downloading files locally.
+https://nicolaslage152.github.io/Xmartlabs-Challenge-Part-4---Nicolas-Lage/
 
 ### Automated Artifact Uploads
 On every pipeline run (success or failure), the framework generates an interactive HTML report containing step-by-step logs, screenshots, and traces. 
