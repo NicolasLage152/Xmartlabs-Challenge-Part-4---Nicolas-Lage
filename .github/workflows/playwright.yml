@@ -57,24 +57,65 @@ jobs:
             npx playwright install-deps ${{ matrix.browser }}
           fi
 
-      - name: 🧪 Run Playwright Tests
-        run: npx playwright test --project=${{ matrix.browser }}
+      - name: 🧪 Run Playwright Tests (Generate Blob)
+        # We output a blob report instead of HTML so we can merge them later
+        run: npx playwright test --project=${{ matrix.browser }} --reporter=blob
         env:
           SAUCE_STANDARD_USER: ${{ secrets.SAUCE_STANDARD_USER }}
           SAUCE_GLITCH_USER: ${{ secrets.SAUCE_GLITCH_USER }}
           SAUCE_PASSWORD: ${{ secrets.SAUCE_PASSWORD }}
 
-      - name: 📊 Upload Playwright Report
+      - name: 📊 Upload Blob Report
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: playwright-report-${{ matrix.browser }}
+          # Unique name per browser to avoid overwriting
+          name: blob-report-${{ matrix.browser }}
+          path: blob-report/
+          retention-days: 1
+
+  merge-reports:
+    name: Merge Reports & Publish
+    # Run even if matrix jobs fail, so we can publish the failure report
+    if: ${{ !cancelled() }}
+    needs: [test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - name: 🛎️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 📥 Download all Blob Reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: blob-report-*
+          path: all-blob-reports
+          merge-multiple: true
+
+      - name: 🔀 Merge Reports into HTML
+        run: npx playwright merge-reports --reporter=html ./all-blob-reports
+
+      - name: 📊 Upload Consolidated HTML Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-consolidated
           path: playwright-report/
           retention-days: 30
 
-      - name: 🚀 Deploy to GitHub Pages (Chromium Only)
+      - name: 🚀 Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
-        if: ${{ !cancelled() && matrix.browser == 'chromium' && github.event_name != 'pull_request' }}
+        if: github.event_name != 'pull_request'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./playwright-report
@@ -82,17 +123,19 @@ jobs:
 
       - name: 📧 Send Email Notification
         uses: dawidd6/action-send-mail@v3
-        if: failure()
+        # Only send email if the test job actually failed
+        if: ${{ needs.test.result == 'failure' }}
         with:
           server_address: ${{ secrets.SMTP_SERVER }}
           server_port: ${{ secrets.SMTP_PORT }}
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          subject: "GitHub Actions: Playwright Tests Failed on ${{ matrix.browser }}"
-          to: "team@example.com"
+          subject: "GitHub Actions: Playwright Tests Failed"
+          # Fixed: Replaced hardcoded email with a GitHub Secret
+          to: ${{ secrets.EMAIL_RECIPIENT }}
           from: "CI/CD Pipeline"
           body: |
-            The E2E test execution has failed for ${{ matrix.browser }}.
+            The E2E test execution has failed for one or more browsers in the matrix.
             
-            You can review the full Playwright report on GitHub Pages:
+            You can review the full consolidated Playwright report on GitHub Pages:
             https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
