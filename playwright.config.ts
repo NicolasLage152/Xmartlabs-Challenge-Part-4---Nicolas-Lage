@@ -11,7 +11,8 @@ import './src/config/env.config';
  * built-in auto-waiting and auto-retrying assertions with generous timeouts.
  */
 export default defineConfig({
-  testDir: './src/tests',
+  testDir: './src',
+  testMatch: ['tests/**/*.spec.ts', 'utils/__tests__/**/*.spec.ts'],
 
   /* Run tests sequentially for predictable execution and clearer reports */
   fullyParallel: false,

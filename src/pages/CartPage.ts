@@ -1,10 +1,6 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 
-/**
- * CartPage — Encapsulates the SauceDemo shopping cart page (/cart.html).
- *
- * Provides methods to inspect cart contents and proceed to checkout.
- */
+
 export class CartPage {
   readonly page: Page;
   readonly cartItems: Locator;
@@ -20,9 +16,7 @@ export class CartPage {
     this.pageTitle = page.locator('[data-test="title"]');
   }
 
-  /**
-   * Assert that the cart page is visible and loaded.
-   */
+
   async expectToBeVisible(): Promise<void> {
     await expect(this.pageTitle).toHaveText('Your Cart');
   }
@@ -37,9 +31,6 @@ export class CartPage {
     await expect(item).toBeVisible();
   }
 
-  /**
-   * Get the number of items currently in the cart.
-   */
   async getItemCount(): Promise<number> {
     return this.cartItems.count();
   }

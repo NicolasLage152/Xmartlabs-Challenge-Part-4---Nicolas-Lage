@@ -65,8 +65,7 @@ test.describe('Mandatory: E2E Purchase Flow @mandatory', () => {
       await productDetailPage.goBackToProducts();
       await inventoryPage.expectToBeVisible();
 
-      const badgeCount = await inventoryPage.getCartBadgeCount();
-      expect(badgeCount).toBe(1);
+      await inventoryPage.expectCartBadgeCount(1);
     });
 
     await test.step('Navigate to cart and verify product is present', async () => {

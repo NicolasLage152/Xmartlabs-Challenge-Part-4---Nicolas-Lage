@@ -53,18 +53,20 @@ export class InventoryPage {
   }
 
   /**
-   * Uses waitFor() instead of isVisible() to leverage Playwright's auto-retry,
-   * which is critical for the performance_glitch_user where the badge may
-   * render with a delay.
-   * Returns 0 if the badge does not appear within the configured timeout.
+   * Asserts the cart badge shows the expected item count.
+   *
+   * Uses Playwright's auto-retrying assertions (toHaveText / toBeHidden),
+   * which respect the global expect timeout from playwright.config.ts.
+   * This handles the performance_glitch_user's delayed renders without
+   * hardcoded timeouts or silent try/catch blocks.
+   *
+   * @param expected - The number of items expected in the cart badge
    */
-  async getCartBadgeCount(): Promise<number> {
-    try {
-      await this.shoppingCartBadge.waitFor({ state: 'visible', timeout: 5_000 });
-      const text = await this.shoppingCartBadge.textContent();
-      return parseInt(text ?? '0', 10);
-    } catch {
-      return 0;
+  async expectCartBadgeCount(expected: number): Promise<void> {
+    if (expected === 0) {
+      await expect(this.shoppingCartBadge).toBeHidden();
+    } else {
+      await expect(this.shoppingCartBadge).toHaveText(String(expected));
     }
   }
 
@@ -84,4 +86,4 @@ export class InventoryPage {
   }
 }
 
-export { parsePrice } from '../utils/priceUtils';
+

@@ -1,6 +1,10 @@
 # 🧪 SauceDemo E2E Test Automation
 
-Automated end-to-end test suite for the [SauceDemo](https://www.saucedemo.com/) web application, built with **Playwright** and **TypeScript**.
+[![Playwright E2E Tests](https://github.com/NicolasLage152/Xmartlabs-Challenge-Part-4---Nicolas-Lage/actions/workflows/playwright.yml/badge.svg)](https://github.com/NicolasLage152/Xmartlabs-Challenge-Part-4---Nicolas-Lage/actions/workflows/playwright.yml)
+
+Automated end-to-end test suite for [SauceDemo](https://www.saucedemo.com/) built with **Playwright + TypeScript**, targeting the `performance_glitch_user` as specified in the Xmartlabs QA Automation challenge.
+
+> 📊 **Latest Test Report**: [GitHub Pages — Live Report](https://nicolaslage152.github.io/Xmartlabs-Challenge-Part-4---Nicolas-Lage/)
 
 ---
 
@@ -10,8 +14,10 @@ Automated end-to-end test suite for the [SauceDemo](https://www.saucedemo.com/) 
 - [Project Structure](#-project-structure)
 - [Setup & Installation](#-setup--installation)
 - [Running the Tests](#-running-the-tests)
+- [Test Scenarios](#-test-scenarios)
 - [Design Decisions](#-design-decisions)
 - [Performance Glitch Strategy](#-performance-glitch-strategy)
+- [CI/CD Pipeline](#-cicd-pipeline-github-actions)
 - [Known Limitations](#-known-limitations)
 
 ---
@@ -20,10 +26,11 @@ Automated end-to-end test suite for the [SauceDemo](https://www.saucedemo.com/) 
 
 | Technology | Why |
 |---|---|
-| **[Playwright](https://playwright.dev/)** | Modern E2E framework with built-in auto-waiting, auto-retrying assertions, and first-class TypeScript support. Its native handling of slow pages makes it ideal for testing the `performance_glitch_user`. |
-| **TypeScript** | Provides type safety, better IDE support (autocomplete, refactoring), and catches errors at compile time — critical for maintainable test code in a team setting. |
-| **Page Object Model (POM)** | Separates page interaction logic from test logic, making tests readable and maintenance cost low when the UI changes. |
-| **Playwright Test Runner** | Built-in test runner with parallel execution, HTML reporting, trace viewer, and fixtures — no need for external runners like Jest or Mocha. |
+| **[Playwright](https://playwright.dev/)** | Modern E2E framework with built-in auto-waiting, auto-retrying assertions, and native multi-browser support. Its auto-waiting mechanism is critical for handling the `performance_glitch_user` without static sleeps. |
+| **TypeScript** | Type safety, IDE autocompletion, and compile-time error detection — essential for maintainable test code in a team environment. |
+| **Page Object Model (POM)** | Encapsulates UI interactions per page, reducing duplication and isolating changes when the UI evolves. |
+| **Playwright Custom Fixtures** | Injects POM instances automatically into each test via dependency injection, eliminating manual instantiation boilerplate. |
+| **dotenv** | Manages environment variables for credentials, supporting both local `.env` files and CI secret injection. |
 
 ---
 
@@ -31,22 +38,30 @@ Automated end-to-end test suite for the [SauceDemo](https://www.saucedemo.com/) 
 
 ```
 saucedemo-e2e-tests/
-├── playwright.config.ts         # Playwright configuration (timeouts, reporters, projects)
-├── package.json                 # Dependencies and npm scripts
-├── tsconfig.json                # TypeScript configuration
+├── .github/
+│   └── workflows/
+│       └── playwright.yml           # CI/CD: matrix, caching, Pages deploy, email
+├── playwright.config.ts             # Global timeouts, reporters, browser projects
+├── package.json                     # Dependencies and npm scripts
+├── tsconfig.json                    # TypeScript strict config
+├── .env.example                     # Environment variable template
 ├── .gitignore
 ├── README.md
 └── src/
+    ├── config/
+    │   └── env.config.ts            # Env var loading + fail-fast validation
     ├── fixtures/
-    │   └── pomFixtures.ts       # Custom Playwright fixtures for POM injection
+    │   └── pomFixtures.ts           # Custom Playwright fixtures for DI of POMs
     ├── pages/
-    │   ├── LoginPage.ts         # Login page interactions
-    │   ├── InventoryPage.ts     # Product listing page + parsePrice utility
-    │   ├── ProductDetailPage.ts # Individual product detail page
-    │   ├── CartPage.ts          # Shopping cart page
-    │   └── CheckoutPage.ts      # Checkout flow (info → overview → complete)
+    │   ├── LoginPage.ts             # Login screen interactions
+    │   ├── InventoryPage.ts         # Product listing + cart badge
+    │   ├── ProductDetailPage.ts     # Product detail + add-to-cart
+    │   ├── CartPage.ts              # Cart verification + checkout trigger
+    │   └── CheckoutPage.ts          # Checkout info → overview → confirmation
+    ├── utils/
+    │   └── priceUtils.ts            # parsePrice() — centralized "$29.99" → 29.99
     └── tests/
-        ├── purchase-flow.spec.ts    # 🔴 Mandatory: E2E purchase with glitch user
+        ├── purchase-flow.spec.ts    # 🔴 Mandatory: E2E purchase (performance_glitch_user)
         └── checkout-pricing.spec.ts # 🟢 Bonus: Checkout math validation
 ```
 
@@ -63,222 +78,290 @@ saucedemo-e2e-tests/
 
 ```bash
 # 1. Clone the repository
-git clone <repo-url>
-cd saucedemo-e2e-tests
+git clone https://github.com/NicolasLage152/Xmartlabs-Challenge-Part-4---Nicolas-Lage.git
+cd Xmartlabs-Challenge-Part-4---Nicolas-Lage
 
 # 2. Install dependencies
 npm install
 
-# 3. Setup Environment Variables
-# Copy the example file and configure it if necessary.
+# 3. Configure environment variables
 cp .env.example .env
+# Edit .env with your credentials (see .env.example for the required variables)
 
-# 4. Install Playwright browsers (Chromium, by default)
-npx playwright install chromium
+# 4. Install Playwright browsers
+npx playwright install --with-deps
 ```
+
+> **Note**: Step 4 downloads Chromium, Firefox, and WebKit. To install only one browser: `npx playwright install --with-deps chromium`.
 
 ---
 
 ## ▶ Running the Tests
 
-### Run all tests
+| Command | Description |
+|---|---|
+| `npm test` | Run all tests across all configured browsers |
+| `npm run test:headed` | Run with browser window visible |
+| `npm run test:mandatory` | Run only the mandatory E2E purchase flow (`@mandatory` tag) |
+| `npm run test:bonus` | Run only the bonus pricing validation (`@bonus` tag) |
+| `npm run test:debug` | Step-by-step debugging with Playwright Inspector |
+| `npm run test:ui` | Interactive UI mode with time-travel debugging |
+| `npm run report` | Open the HTML report from the last run |
+
+### Run a specific browser
 
 ```bash
-npm test
+npx playwright test --project=chromium
+npx playwright test --project=firefox
+npx playwright test --project=webkit
 ```
 
-### Run with browser visible (headed mode)
+---
 
-```bash
-npm run test:headed
-```
+## 🎯 Test Scenarios
 
-### Run only the mandatory test
+### 🔴 Mandatory: E2E Purchase Flow (`purchase-flow.spec.ts`)
 
-```bash
-npm run test:mandatory
-```
+Validates the complete purchase journey using `performance_glitch_user`:
 
-### Run only the bonus test
+| Step | Action | Assertion |
+|:---:|---|---|
+| 0 | Login with `performance_glitch_user` | Redirected to `/inventory.html` |
+| 1 | Select "Sauce Labs Backpack" → open Product Detail | Product name matches |
+| 2 | Add to cart from Product Detail page | "Remove" button appears |
+| 3 | Return to inventory via "Back to Products" | Cart badge shows `1` |
+| 4 | Navigate to Cart | Product is present in cart |
+| 5 | Fill checkout information | Navigated to overview |
+| 6 | Verify pricing (subtotal + tax = total) | Math is correct |
+| 7 | Finish order | "Thank you for your order!" confirmation |
 
-```bash
-npm run test:bonus
-```
+### 🟢 Bonus: Checkout Price Calculation (`checkout-pricing.spec.ts`)
 
-### Debug mode (step-by-step with inspector)
+Validates mathematical integrity of checkout pricing with 2 products:
 
-```bash
-npm run test:debug
-```
+- **Sum of individual item prices** = displayed subtotal
+- **Subtotal + tax** = displayed total
+- Handles JavaScript floating-point precision via `toFixed(2)` + `parseFloat()`
 
-### Interactive UI mode
-
-```bash
-npm run test:ui
-```
-
-### View HTML report after a run
-
-```bash
-npm run report
-```
+> Uses `standard_user` to isolate the pricing validation from performance concerns — the mandatory test already covers the glitch user.
 
 ---
 
 ## 🧩 Design Decisions
 
-### 1. Page Object Model with Playwright Fixtures
+### 1. Page Object Model with Playwright Fixtures (Dependency Injection)
 
-Instead of manually instantiating POMs in each test (`const login = new LoginPage(page)`), we use **Playwright custom fixtures** (`src/fixtures/pomFixtures.ts`) to inject them automatically:
+Instead of manual POM instantiation in each test:
 
 ```typescript
+// ❌ Manual (boilerplate-heavy)
+const loginPage = new LoginPage(page);
+
+// ✅ Fixture injection (clean, DRY)
 test('my test', async ({ loginPage, inventoryPage }) => {
   await loginPage.goto();
-  // Pages are ready to use — no boilerplate
 });
 ```
 
-This reduces repetition and ensures consistent POM initialization.
+Fixtures are defined in [`pomFixtures.ts`](src/fixtures/pomFixtures.ts) and automatically provide typed POM instances to every test.
 
 ### 2. Selector Strategy: `data-test` Attributes
 
-SauceDemo provides `data-test` attributes on all interactive elements (e.g., `[data-test="login-button"]`). We use these exclusively because they:
-- Are **purpose-built** for testing (won't break on visual redesigns)
-- Are more **stable** than CSS class names or XPath
-- Communicate **intent** clearly (self-documenting selectors)
+All selectors use SauceDemo's `data-test` attributes exclusively (e.g., `[data-test="login-button"]`):
+- **Resilient** to CSS/visual redesigns
+- **Self-documenting** — selectors reveal intent
+- **Stable** — purpose-built for testing, not coupled to implementation
 
 ### 3. `test.step()` for Structured Reporting
 
-Each logical step in the E2E flow is wrapped in `test.step()`, which:
-- Produces **clearly labeled sections** in the HTML report
-- Makes **failures easy to locate** (you see which step failed)
-- Acts as living **documentation** of the user journey
+Every logical action is wrapped in `test.step()`, producing clearly labeled sections in the HTML report. When a test fails, you see *which step* failed — not just a stack trace.
 
-### 4. Floating-Point Precision in Price Validation
+### 4. Floating-Point Precision Handling
 
-JavaScript floating-point arithmetic can produce results like `29.99 + 9.99 = 39.980000000000004`. To handle this, we round to 2 decimal places using `toFixed(2)` before comparing:
+JavaScript's IEEE 754 arithmetic can produce results like `29.99 + 9.99 = 39.980000000000004`. We normalize before comparing:
 
 ```typescript
-const calculated = parseFloat((29.99 + 9.99).toFixed(2)); // 39.98
-expect(calculated).toBe(subtotal); // Exact match
+const calculated = parseFloat((subtotal + tax).toFixed(2));
+expect(calculated).toBe(total);
 ```
 
 ### 5. Centralized `parsePrice()` Utility
 
-All price parsing (`"$29.99"` → `29.99`) goes through a single `parsePrice()` function exported from `InventoryPage.ts`. This avoids scattered regex/parsing logic and ensures consistency.
+All price string parsing (`"$29.99"` → `29.99`) goes through a single [`parsePrice()`](src/utils/priceUtils.ts) function, ensuring consistent regex and error handling across all POMs.
+
+### 6. Fail-Fast Environment Validation
+
+[`env.config.ts`](src/config/env.config.ts) validates all required environment variables at startup. If any are missing, the suite fails immediately with a descriptive error — no cryptic failures deep in a test.
 
 ---
 
 ## ⏱ Performance Glitch Strategy
 
-The `performance_glitch_user` intentionally introduces **~5 second delays** on various interactions (login, page transitions, etc.). Here's how we handle it **without any static sleeps**:
+The `performance_glitch_user` intentionally injects **~5 second delays** into login, page transitions, and other interactions. Our strategy handles this **without any static sleeps or hardcoded waits**.
 
-### ❌ What we DON'T do
+### ❌ What We DON'T Do
 
 ```typescript
-// NEVER this — fragile, slow, unreliable
+// NEVER — fragile, slow, unreliable
 await page.waitForTimeout(5000);
 await new Promise(resolve => setTimeout(resolve, 5000));
 ```
 
-### ✅ What we DO instead
+### ✅ What We DO Instead
 
-#### 1. Extended Timeouts in Configuration
+#### 1. Extended Timeouts (Centralized in Config)
+
+All timeout tuning is in [`playwright.config.ts`](playwright.config.ts) — not scattered across tests:
 
 ```typescript
-// playwright.config.ts
 use: {
-  actionTimeout: 15_000,     // 15s for clicks, fills, etc.
+  actionTimeout: 15_000,     // 15s for clicks, fills (3× the ~5s glitch)
   navigationTimeout: 30_000, // 30s for page navigations
 },
 expect: {
   timeout: 15_000,           // 15s for auto-retrying assertions
 },
-timeout: 120_000,            // 2min global test timeout
+timeout: 120_000,            // 2min global test timeout (cumulative delays)
 ```
 
 #### 2. Auto-Retrying Assertions
 
-Playwright's `expect()` assertions **poll continuously** until the condition is met or the timeout expires. This naturally waits for the glitch user's delayed responses:
+Playwright's `expect()` polls continuously until the condition is met or timeout expires:
 
 ```typescript
-// Polls until URL contains "inventory" — handles the 5s login delay
+// Handles ~5s login delay — polls until URL changes
 await expect(page).toHaveURL(/inventory/);
 
-// Polls until the element is visible — handles slow renders
+// Handles slow renders — polls until text appears
 await expect(title).toHaveText('Products');
 ```
 
 #### 3. Built-in Auto-Waiting on Actions
 
-Playwright automatically waits for elements to be **attached**, **visible**, **stable**, and **enabled** before performing actions like `click()` and `fill()`. This inherently handles delayed renders.
+Playwright automatically waits for elements to be **attached**, **visible**, **stable**, and **enabled** before `click()`, `fill()`, etc. This inherently handles delayed renders.
 
-### Why This Approach is Superior
+### Why This Approach Is Superior
 
 | Static Sleeps | Dynamic Waits (our approach) |
 |---|---|
 | Always wait the full duration | Continue as soon as condition is met |
-| Fail silently if app is slower than expected | Fail with clear timeout error |
+| Fail silently if app is slower | Fail with clear timeout error |
 | Waste CI time on every run | Only wait as long as needed |
 | Mask real performance regressions | Surface them through timeout failures |
 
 ---
 
+## 🤖 CI/CD Pipeline (GitHub Actions)
+
+The project includes a production-grade CI/CD pipeline ([`.github/workflows/playwright.yml`](.github/workflows/playwright.yml)) that goes beyond basic test execution.
+
+### Pipeline Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Triggers                                 │
+│   push (main) │ pull_request (main) │ schedule (3AM) │ manual   │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+     ┌─────────┐   ┌─────────┐   ┌─────────┐
+     │Chromium │   │ Firefox │   │ WebKit  │   ← Matrix Strategy
+     │(blob)   │   │(blob)   │   │(blob)   │
+     └────┬────┘   └────┬────┘   └────┬────┘
+          │              │              │
+          └──────────────┼──────────────┘
+                         ▼
+              ┌────────────────────┐
+              │  Merge Reports     │  ← Consolidate blob reports
+              │  into single HTML  │
+              └─────────┬──────────┘
+                        │
+               ┌────────┼────────┐
+               ▼        ▼        ▼
+          ┌────────┐ ┌──────┐ ┌──────┐
+          │Artifact│ │Pages │ │Email │
+          │Upload  │ │Deploy│ │Notify│
+          └────────┘ └──────┘ └──────┘
+```
+
+### Key Features
+
+#### 1. 🔄 Nightly Scheduled Runs
+
+```yaml
+schedule:
+  - cron: '0 3 * * *'  # Every day at 3:00 AM UTC
+```
+
+Runs the full suite daily — catches environmental regressions, third-party API changes, or SauceDemo updates **before** they affect development.
+
+#### 2. 🌐 Matrix Strategy (Cross-Browser)
+
+```yaml
+strategy:
+  fail-fast: false
+  matrix:
+    browser: [chromium, firefox, webkit]
+```
+
+Tests run in parallel across **3 browser engines**. `fail-fast: false` ensures all browsers report results even if one fails.
+
+#### 3. 🧠 Smart Browser Caching
+
+```yaml
+key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}-${{ matrix.browser }}
+```
+
+Caches Playwright browser binaries (~500MB) with a version-aware key. On cache hit, only OS-level dependencies are installed — **saving 1-2 minutes per run**.
+
+#### 4. 📊 Blob Report Merging
+
+Each matrix job produces a **blob report** (`--reporter=blob`). A dedicated `merge-reports` job consolidates them into a single interactive HTML report covering all browsers.
+
+#### 5. 🚀 GitHub Pages Deployment
+
+The consolidated HTML report is automatically deployed to GitHub Pages on `push` and `schedule` events (not PRs), providing a persistent, zero-download URL for stakeholders:
+
+> 📊 [https://nicolaslage152.github.io/Xmartlabs-Challenge-Part-4---Nicolas-Lage/](https://nicolaslage152.github.io/Xmartlabs-Challenge-Part-4---Nicolas-Lage/)
+
+#### 6. 📧 Email Notifications
+
+On every pipeline completion (success or failure), an email is dispatched with:
+- Test execution status
+- Direct link to the GitHub Pages report
+
+### 🔐 Secrets Configuration
+
+To run the pipeline, configure the following **Repository Secrets** in GitHub (*Settings > Secrets and variables > Actions*):
+
+| Secret | Purpose | Example |
+|---|---|---|
+| `SAUCE_STANDARD_USER` | SauceDemo standard user login | `standard_user` |
+| `SAUCE_GLITCH_USER` | SauceDemo performance glitch user login | `performance_glitch_user` |
+| `SAUCE_PASSWORD` | SauceDemo password | `secret_sauce` |
+| `SMTP_SERVER` | Email server address | `smtp.gmail.com` |
+| `SMTP_PORT` | Email server port | `587` |
+| `SMTP_USERNAME` | Email sender username | `your-email@gmail.com` |
+| `SMTP_PASSWORD` | Email sender password / app password | `xxxx-xxxx-xxxx-xxxx` |
+| `EMAIL_RECIPIENT` | Notification recipient | `team@company.com` |
+
+> **Note**: The SMTP secrets are only required for email notifications. The pipeline will run tests and deploy reports without them (the email step will fail gracefully).
+
+---
+
 ## ⚠ Known Limitations
 
-1. **Single browser**: Tests run on Chromium only. The config can be extended with Firefox/WebKit projects for cross-browser coverage.
+1. **No test data isolation**: SauceDemo is a shared stateless demo app — there is no risk of data pollution between tests. In a real-world application, setup/teardown hooks or API-based data seeding would be necessary.
 
-2. **No test data isolation**: SauceDemo uses a shared, stateless demo app — there's no risk of data pollution between tests. In a real-world scenario, tests would need setup/teardown hooks for data isolation.
+2. **Tax rate not validated**: The bonus test verifies that `subtotal + tax = total` but does not assert the tax *rate* (e.g., 8%), as SauceDemo does not document the expected rate in its UI.
 
-3. **Credentials Management**: Credentials for the test users are currently managed via a local `.env` file (and documented in `.env.example`). In a production CI/CD pipeline, these would be injected dynamically as GitHub Actions secrets (or equivalent) for maximum security.
+3. **No visual regression testing**: This suite focuses on functional E2E validation. Playwright's screenshot comparison (`toHaveScreenshot()`) could be added as a complementary visual layer.
 
-4. **Tax calculation logic**: The bonus test validates that `subtotal + tax = total` but does not verify the tax *rate* itself (e.g., that it's exactly 8%). This is because the tax rate isn't documented in SauceDemo's UI and may vary.
-
-5. **No visual regression testing**: This suite focuses on functional E2E validation. Visual regression tools (like Playwright's screenshot comparison) could be added as a complementary layer.
+4. **No API-level tests**: All validations are performed through the UI. In a production suite, API tests would complement UI tests for faster feedback loops on business logic.
 
 ---
 
-## 🤖 CI/CD Integration (GitHub Actions)
+## 📄 License
 
-This project is fully configured for Continuous Integration via **GitHub Actions** (`.github/workflows/playwright.yml`), ensuring robust and automated quality checks.
-
-### Key Pipeline Features
-
-1. **Nightly Scheduled Runs (Cron)**
-   - **Trigger:** `0 3 * * *` (3:00 AM daily).
-   - **Value:** Ensures daily platform health monitoring even when no code changes are pushed, catching environmental or third-party regressions early.
-
-2. **Matrix Strategy (Cross-Browser Execution)**
-   - **Engines:** Chromium, Firefox, WebKit.
-   - **Value:** The pipeline automatically parallelizes test execution across multiple browser engines, guaranteeing cross-browser compatibility and surfacing browser-specific rendering or behavioral bugs.
-
-3. **Smart Caching**
-   - **Implementation:** Caches Playwright browser binaries based on the OS and Playwright version (`~/.cache/ms-playwright`).
-   - **Value:** Significantly reduces pipeline execution time and resource consumption by skipping massive browser downloads on subsequent runs. If a cache hit occurs, the pipeline intelligently installs only the missing OS-level dependencies.
-
-### Secrets Configuration
-To run the pipeline successfully, configure the following **Repository Secrets** in your GitHub repository (*Settings > Secrets and variables > Actions*):
-
-- `SAUCE_STANDARD_USER` (e.g., `standard_user`)
-- `SAUCE_GLITCH_USER` (e.g., `performance_glitch_user`)
-- `SAUCE_PASSWORD` (e.g., `secret_sauce`)
-
----
-
-## ☁️ Cloud Deployment (Test Reporting)
-
-Visibility into test results is critical. This project automates the publication and cloud hosting of test reports to make them accessible to stakeholders without downloading files locally.
-https://nicolaslage152.github.io/Xmartlabs-Challenge-Part-4---Nicolas-Lage/
-
-### Automated Artifact Uploads
-On every pipeline run (success or failure), the framework generates an interactive HTML report containing step-by-step logs, screenshots, and traces. 
-- GitHub Actions automatically uploads these as **Artifacts** (`playwright-report-chromium`, `playwright-report-firefox`, etc.).
-- They are stored securely and available for download directly from the GitHub Actions run summary.
-
-### GitHub Pages Hosting
-To provide zero-friction access, the pipeline automatically deploys the HTML report to **GitHub Pages**.
-- **How it works:** The `peaceiris/actions-gh-pages` step takes the generated report directory and publishes it to a dedicated `gh-pages` branch.
-- **Accessibility:** Team members (Devs, QA, Managers) can click a persistent URL (e.g., `https://<org>.github.io/<repo>/`) to instantly view the latest interactive report in their browser.
-- **Condition:** To prevent deployment race conditions across matrix jobs, the pages deployment is bound specifically to the successful completion of the `chromium` job.
-
-*(Note: If a failure occurs, the pipeline also automatically dispatches an email notification containing the direct link to this cloud-hosted report).*
+ISC

@@ -9,6 +9,7 @@
     "test:debug": "npx playwright test --debug",
     "test:mandatory": "npx playwright test --grep @mandatory",
     "test:bonus": "npx playwright test --grep @bonus",
+    "test:unit": "npx playwright test src/utils/__tests__/",
     "report": "npx playwright show-report"
   },
   "keywords": [

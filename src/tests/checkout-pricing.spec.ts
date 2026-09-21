@@ -50,8 +50,7 @@ test.describe('Bonus: Checkout Price Calculation @bonus', () => {
         await inventoryPage.addProductToCart(product);
       }
 
-      const badgeCount = await inventoryPage.getCartBadgeCount();
-      expect(badgeCount).toBe(PRODUCTS_TO_ADD.length);
+      await inventoryPage.expectCartBadgeCount(PRODUCTS_TO_ADD.length);
     });
 
     await test.step('Proceed through cart and checkout info to overview', async () => {

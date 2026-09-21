@@ -9,6 +9,10 @@ on:
   schedule:
     - cron: '0 3 * * *'
 
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Run E2E Tests on ${{ matrix.browser }}
@@ -73,7 +77,7 @@ jobs:
           retention-days: 1
 
   merge-reports:
-    name: Merge Reports & Publish
+    name: Merge Reports
     if: ${{ !cancelled() }}
     needs: [test]
     runs-on: ubuntu-latest
@@ -109,15 +113,7 @@ jobs:
           name: playwright-report-consolidated
           path: playwright-report/
           retention-days: 30
-
-      - name: 🚀 Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        if: github.event_name != 'pull_request'
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./playwright-report
-          keep_files: true
-
+          
       - name: 📧 Send Email Notification
         uses: dawidd6/action-send-mail@v3
         if: always()
@@ -134,3 +130,37 @@ jobs:
             
             You can review the full consolidated Playwright report on GitHub Pages 🚀:
             https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+
+  deploy-to-pages:
+    name: Deploy to GitHub Pages
+    if: github.event_name != 'pull_request'
+    needs: [merge-reports]
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+      
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+      
+    steps:
+      - name: 📥 Download Consolidated Report
+        uses: actions/download-artifact@v4
+        with:
+          name: playwright-report-consolidated
+          path: playwright-report
+
+      - name: ⚙️ Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: 📦 Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './playwright-report'
+
+      - name: 🚀 Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

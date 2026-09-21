@@ -1,11 +1,6 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 
-/**
- * LoginPage — Encapsulates the SauceDemo login screen.
- *
- * Uses data-test attributes provided by SauceDemo for robust,
- * refactor-resistant selectors.
- */
+
 export class LoginPage {
   readonly page: Page;
   readonly usernameInput: Locator;
