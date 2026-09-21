@@ -41,7 +41,6 @@ test.describe('Bonus: Checkout Price Calculation @bonus', () => {
     cartPage,
     checkoutPage,
   }) => {
-    // ── Setup: Login and add multiple products ─────────────────────
     await test.step('Login and add products to cart', async () => {
       await loginPage.goto();
       await loginPage.login(ENV.STANDARD_USER, ENV.PASSWORD);
@@ -51,17 +50,14 @@ test.describe('Bonus: Checkout Price Calculation @bonus', () => {
         await inventoryPage.addProductToCart(product);
       }
 
-      // Verify cart badge reflects the correct item count
       const badgeCount = await inventoryPage.getCartBadgeCount();
       expect(badgeCount).toBe(PRODUCTS_TO_ADD.length);
     });
 
-    // ── Navigate to checkout overview ──────────────────────────────
     await test.step('Proceed through cart and checkout info to overview', async () => {
       await inventoryPage.goToCart();
       await cartPage.expectToBeVisible();
 
-      // Verify all products are in the cart
       for (const product of PRODUCTS_TO_ADD) {
         await cartPage.expectProductInCart(product);
       }
@@ -75,16 +71,12 @@ test.describe('Bonus: Checkout Price Calculation @bonus', () => {
       await checkoutPage.expectOverviewVisible();
     });
 
-    // ── Extract and validate pricing ───────────────────────────────
     await test.step('Validate item prices sum to the subtotal', async () => {
       const itemPrices = await checkoutPage.getItemPrices();
       const subtotal = await checkoutPage.getSubtotal();
 
-      // Sum individual item prices
       const calculatedSubtotal = itemPrices.reduce((sum, price) => sum + price, 0);
 
-      // Use toFixed(2) comparison to handle floating-point precision
-      // (e.g., 29.99 + 9.99 could yield 39.980000000000004 in JS)
       expect(
         parseFloat(calculatedSubtotal.toFixed(2)),
         `Sum of item prices (${itemPrices.join(' + ')} = ${calculatedSubtotal.toFixed(2)}) ` +

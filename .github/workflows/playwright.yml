@@ -58,7 +58,6 @@ jobs:
           fi
 
       - name: 🧪 Run Playwright Tests (Generate Blob)
-        # We output a blob report instead of HTML so we can merge them later
         run: npx playwright test --project=${{ matrix.browser }} --reporter=blob
         env:
           SAUCE_STANDARD_USER: ${{ secrets.SAUCE_STANDARD_USER }}
@@ -69,14 +68,12 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          # Unique name per browser to avoid overwriting
           name: blob-report-${{ matrix.browser }}
           path: blob-report/
           retention-days: 1
 
   merge-reports:
     name: Merge Reports & Publish
-    # Run even if matrix jobs fail, so we can publish the failure report
     if: ${{ !cancelled() }}
     needs: [test]
     runs-on: ubuntu-latest
@@ -123,15 +120,13 @@ jobs:
 
       - name: 📧 Send Email Notification
         uses: dawidd6/action-send-mail@v3
-        # Only send email if the test job actually failed
-        if: ${{ needs.test.result == 'failure' }}
+        if: always()
         with:
           server_address: ${{ secrets.SMTP_SERVER }}
           server_port: ${{ secrets.SMTP_PORT }}
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
           subject: "GitHub Actions: Playwright Tests Failed"
-          # Fixed: Replaced hardcoded email with a GitHub Secret
           to: ${{ secrets.EMAIL_RECIPIENT }}
           from: "CI/CD Pipeline"
           body: |

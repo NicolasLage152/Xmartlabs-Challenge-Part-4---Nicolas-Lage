@@ -84,5 +84,4 @@ export class InventoryPage {
   }
 }
 
-// Re-export parsePrice from utils for backward compatibility
 export { parsePrice } from '../utils/priceUtils';

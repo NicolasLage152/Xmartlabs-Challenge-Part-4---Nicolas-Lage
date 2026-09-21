@@ -44,9 +44,6 @@ export class CartPage {
     return this.cartItems.count();
   }
 
-  /**
-   * Proceed to the checkout flow.
-   */
   async proceedToCheckout(): Promise<void> {
     await this.checkoutButton.click();
     await expect(this.page).toHaveURL(/checkout-step-one/);

@@ -52,28 +52,23 @@ test.describe('Mandatory: E2E Purchase Flow @mandatory', () => {
       await inventoryPage.expectToBeVisible();
     });
 
-    // ── Step 1: Open Product Detail Page ───────────────────────────
     await test.step('Select a product and open its detail page', async () => {
       await inventoryPage.openProductDetail(TARGET_PRODUCT);
       await productDetailPage.expectProductName(TARGET_PRODUCT);
     });
 
-    // ── Step 2: Add to cart from Product Detail Page ───────────────
     await test.step('Add product to cart from the detail page', async () => {
       await productDetailPage.addToCart();
     });
 
-    // ── Step 3: Navigate back to Products ──────────────────────────
     await test.step('Return to inventory via "Back to products" button', async () => {
       await productDetailPage.goBackToProducts();
       await inventoryPage.expectToBeVisible();
 
-      // Verify cart badge shows 1 item
       const badgeCount = await inventoryPage.getCartBadgeCount();
       expect(badgeCount).toBe(1);
     });
 
-    // ── Step 4: Complete the checkout flow ──────────────────────────
     await test.step('Navigate to cart and verify product is present', async () => {
       await inventoryPage.goToCart();
       await cartPage.expectToBeVisible();
@@ -92,12 +87,10 @@ test.describe('Mandatory: E2E Purchase Flow @mandatory', () => {
     await test.step('Review order overview, verify pricing, and finish purchase', async () => {
       await checkoutPage.expectOverviewVisible();
 
-      // Verify the item price in the checkout overview matches expectations
       const itemPrices = await checkoutPage.getItemPrices();
       expect(itemPrices).toHaveLength(1);
       expect(itemPrices[0]).toBeGreaterThan(0);
 
-      // Verify pricing math: subtotal + tax = total
       const subtotal = await checkoutPage.getSubtotal();
       const tax = await checkoutPage.getTax();
       const total = await checkoutPage.getTotal();
