@@ -1,5 +1,5 @@
 import { type Page, type Locator, expect } from '@playwright/test';
-import { parsePrice } from './InventoryPage';
+import { parsePrice } from '../utils/priceUtils';
 
 /**
  * CheckoutPage — Encapsulates the entire SauceDemo checkout flow.

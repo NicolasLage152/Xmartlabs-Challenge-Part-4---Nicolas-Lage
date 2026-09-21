@@ -1,9 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
-import * as dotenv from 'dotenv';
-import * as path from 'path';
+import './src/config/env.config';
 
-// Cargar variables de entorno globalmente desde el archivo .env
-dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 /**
  * Playwright configuration optimized for the SauceDemo application.
@@ -77,6 +74,14 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
     },
   ],
 });

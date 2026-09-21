@@ -5,12 +5,22 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  schedule:
+    # Nightly Scheduled Runs (Cron): Executes full test suite every night at 3:00 AM
+    - cron: '0 3 * * *'
 
 jobs:
   test:
-    name: Run E2E Tests
+    name: Run E2E Tests on ${{ matrix.browser }}
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    
+    # Matrix Strategy: Parallel execution across multiple browser engines
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+        
     permissions:
       contents: write
 
@@ -27,11 +37,30 @@ jobs:
       - name: 📦 Install Dependencies
         run: npm ci
 
-      - name: 🌐 Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
+      - name: 🔍 Get Playwright Version
+        id: playwright-version
+        run: echo "PLAYWRIGHT_VERSION=$(npx playwright --version | awk '{print $2}')" >> $GITHUB_ENV
+
+      # Smart Caching: Cache Playwright browser binaries to reduce execution time
+      - name: 🧠 Cache Playwright Browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}-${{ matrix.browser }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: 🌐 Install Playwright Browsers & OS Dependencies
+        run: |
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
+            npx playwright install --with-deps ${{ matrix.browser }}
+          else
+            npx playwright install-deps ${{ matrix.browser }}
+          fi
 
       - name: 🧪 Run Playwright Tests
-        run: npx playwright test
+        run: npx playwright test --project=${{ matrix.browser }}
         env:
           SAUCE_STANDARD_USER: ${{ secrets.SAUCE_STANDARD_USER }}
           SAUCE_GLITCH_USER: ${{ secrets.SAUCE_GLITCH_USER }}
@@ -41,13 +70,33 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.browser }}
           path: playwright-report/
           retention-days: 30
 
-      - name: 🚀 Deploy to GitHub Pages
+      # Cloud Deployment for Reports
+      - name: 🚀 Deploy to GitHub Pages (Chromium Only)
         uses: peaceiris/actions-gh-pages@v4
-        if: ${{ !cancelled() }}
+        # Deploying only from one matrix job to prevent race conditions during GH Pages publish
+        if: ${{ !cancelled() && matrix.browser == 'chromium' && github.event_name != 'pull_request' }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./playwright-report
+          keep_files: true
+
+      - name: 📧 Send Email Notification
+        uses: dawidd6/action-send-mail@v3
+        if: failure()
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "GitHub Actions: Playwright Tests Failed on ${{ matrix.browser }}"
+          to: "team@example.com"
+          from: "CI/CD Pipeline"
+          body: |
+            The E2E test execution has failed for ${{ matrix.browser }}.
+            
+            You can review the full Playwright report on GitHub Pages:
+            https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/

@@ -89,8 +89,21 @@ test.describe('Mandatory: E2E Purchase Flow @mandatory', () => {
       );
     });
 
-    await test.step('Review order overview and finish purchase', async () => {
+    await test.step('Review order overview, verify pricing, and finish purchase', async () => {
       await checkoutPage.expectOverviewVisible();
+
+      // Verify the item price in the checkout overview matches expectations
+      const itemPrices = await checkoutPage.getItemPrices();
+      expect(itemPrices).toHaveLength(1);
+      expect(itemPrices[0]).toBeGreaterThan(0);
+
+      // Verify pricing math: subtotal + tax = total
+      const subtotal = await checkoutPage.getSubtotal();
+      const tax = await checkoutPage.getTax();
+      const total = await checkoutPage.getTotal();
+      expect(subtotal).toBe(itemPrices[0]);
+      expect(parseFloat((subtotal + tax).toFixed(2))).toBe(total);
+
       await checkoutPage.finishOrder();
     });
 

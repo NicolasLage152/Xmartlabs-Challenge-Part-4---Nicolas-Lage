@@ -1,4 +1,5 @@
 import { type Page, type Locator, expect } from '@playwright/test';
+import { parsePrice } from '../utils/priceUtils';
 
 /**
  * InventoryPage — Encapsulates the SauceDemo product listing page (/inventory.html).
@@ -67,14 +68,20 @@ export class InventoryPage {
   }
 
   /**
-   * Get the current cart badge count. Returns 0 if badge is not visible.
+   * Get the current cart badge count.
+   * Uses waitFor() instead of isVisible() to leverage Playwright's auto-retry,
+   * which is critical for the performance_glitch_user where the badge may
+   * render with a delay.
+   * Returns 0 if the badge does not appear within the configured timeout.
    */
   async getCartBadgeCount(): Promise<number> {
-    if (await this.shoppingCartBadge.isVisible()) {
+    try {
+      await this.shoppingCartBadge.waitFor({ state: 'visible', timeout: 5_000 });
       const text = await this.shoppingCartBadge.textContent();
       return parseInt(text ?? '0', 10);
+    } catch {
+      return 0;
     }
-    return 0;
   }
 
   /**
@@ -95,12 +102,6 @@ export class InventoryPage {
   }
 }
 
-/**
- * Utility: Parse a price string like "$29.99" into a float (29.99).
- * Removes the dollar sign and any whitespace.
- */
-export function parsePrice(priceText: string | null): number {
-  if (!priceText) throw new Error('Price text is null or undefined');
-  return parseFloat(priceText.replace(/[^0-9.]/g, ''));
-}
+// Re-export parsePrice from utils for backward compatibility
+export { parsePrice } from '../utils/priceUtils';
 

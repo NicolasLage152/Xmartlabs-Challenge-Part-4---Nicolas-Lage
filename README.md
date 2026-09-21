@@ -240,19 +240,44 @@ Playwright automatically waits for elements to be **attached**, **visible**, **s
 
 ## 🤖 CI/CD Integration (GitHub Actions)
 
-This project is fully configured for Continuous Integration via **GitHub Actions**. 
+This project is fully configured for Continuous Integration via **GitHub Actions** (`.github/workflows/playwright.yml`), ensuring robust and automated quality checks.
 
-The workflow is defined in `.github/workflows/playwright.yml` and triggers automatically on `push` and `pull_request` to the `main` branch.
+### Key Pipeline Features
+
+1. **Nightly Scheduled Runs (Cron)**
+   - **Trigger:** `0 3 * * *` (3:00 AM daily).
+   - **Value:** Ensures daily platform health monitoring even when no code changes are pushed, catching environmental or third-party regressions early.
+
+2. **Matrix Strategy (Cross-Browser Execution)**
+   - **Engines:** Chromium, Firefox, WebKit.
+   - **Value:** The pipeline automatically parallelizes test execution across multiple browser engines, guaranteeing cross-browser compatibility and surfacing browser-specific rendering or behavioral bugs.
+
+3. **Smart Caching**
+   - **Implementation:** Caches Playwright browser binaries based on the OS and Playwright version (`~/.cache/ms-playwright`).
+   - **Value:** Significantly reduces pipeline execution time and resource consumption by skipping massive browser downloads on subsequent runs. If a cache hit occurs, the pipeline intelligently installs only the missing OS-level dependencies.
 
 ### Secrets Configuration
-To run the pipeline successfully, you must configure the following **Repository Secrets** in your GitHub repository (*Settings > Secrets and variables > Actions*):
+To run the pipeline successfully, configure the following **Repository Secrets** in your GitHub repository (*Settings > Secrets and variables > Actions*):
 
 - `SAUCE_STANDARD_USER` (e.g., `standard_user`)
 - `SAUCE_GLITCH_USER` (e.g., `performance_glitch_user`)
 - `SAUCE_PASSWORD` (e.g., `secret_sauce`)
 
-The workflow will automatically inject these secrets securely into the test runner as environment variables.
+---
 
-### Test Reports
-If a test fails in the pipeline, GitHub Actions will automatically upload the HTML report as an **Artifact**. You can download `playwright-report.zip` from the workflow summary page to inspect traces, videos, and error logs locally.
+## ☁️ Cloud Deployment (Test Reporting)
 
+Visibility into test results is critical. This project automates the publication and cloud hosting of test reports to make them accessible to stakeholders without downloading files locally.
+
+### Automated Artifact Uploads
+On every pipeline run (success or failure), the framework generates an interactive HTML report containing step-by-step logs, screenshots, and traces. 
+- GitHub Actions automatically uploads these as **Artifacts** (`playwright-report-chromium`, `playwright-report-firefox`, etc.).
+- They are stored securely and available for download directly from the GitHub Actions run summary.
+
+### GitHub Pages Hosting
+To provide zero-friction access, the pipeline automatically deploys the HTML report to **GitHub Pages**.
+- **How it works:** The `peaceiris/actions-gh-pages` step takes the generated report directory and publishes it to a dedicated `gh-pages` branch.
+- **Accessibility:** Team members (Devs, QA, Managers) can click a persistent URL (e.g., `https://<org>.github.io/<repo>/`) to instantly view the latest interactive report in their browser.
+- **Condition:** To prevent deployment race conditions across matrix jobs, the pages deployment is bound specifically to the successful completion of the `chromium` job.
+
+*(Note: If a failure occurs, the pipeline also automatically dispatches an email notification containing the direct link to this cloud-hosted report).*
