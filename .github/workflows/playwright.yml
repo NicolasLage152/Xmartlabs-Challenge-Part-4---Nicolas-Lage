@@ -11,38 +11,43 @@ jobs:
     name: Run E2E Tests
     timeout-minutes: 60
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: write
+
     steps:
-    - name: 🛎️ Checkout Repository
-      uses: actions/checkout@v4
+      - name: 🛎️ Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: ⚙️ Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
-        cache: 'npm'
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
 
-    - name: 📦 Install Dependencies
-      # npm ci es más rápido y estricto (ideal para CI) ya que usa el package-lock.json
-      run: npm ci
+      - name: 📦 Install Dependencies
+        run: npm ci
 
-    - name: 🌐 Install Playwright Browsers
-      run: npx playwright install --with-deps chromium
+      - name: 🌐 Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
 
-    - name: 🧪 Run Playwright Tests
-      run: npx playwright test
-      env:
-        # Inyección de secretos de GitHub como variables de entorno
-        SAUCE_STANDARD_USER: ${{ secrets.SAUCE_STANDARD_USER }}
-        SAUCE_GLITCH_USER: ${{ secrets.SAUCE_GLITCH_USER }}
-        SAUCE_PASSWORD: ${{ secrets.SAUCE_PASSWORD }}
+      - name: 🧪 Run Playwright Tests
+        run: npx playwright test
+        env:
+          SAUCE_STANDARD_USER: ${{ secrets.SAUCE_STANDARD_USER }}
+          SAUCE_GLITCH_USER: ${{ secrets.SAUCE_GLITCH_USER }}
+          SAUCE_PASSWORD: ${{ secrets.SAUCE_PASSWORD }}
 
-    - name: 📊 Upload Playwright Report
-      uses: actions/upload-artifact@v4
-      # Asegura que el reporte se suba incluso si los tests fallan
-      if: ${{ !cancelled() }}
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+      - name: 📊 Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
 
+      - name: 🚀 Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        if: ${{ !cancelled() }}
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./playwright-report
