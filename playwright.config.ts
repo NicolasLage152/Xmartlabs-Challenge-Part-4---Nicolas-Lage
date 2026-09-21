@@ -1,4 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Cargar variables de entorno globalmente desde el archivo .env
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 /**
  * Playwright configuration optimized for the SauceDemo application.

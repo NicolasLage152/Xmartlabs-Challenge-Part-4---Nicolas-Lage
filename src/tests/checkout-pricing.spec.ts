@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/pomFixtures';
+import { ENV } from '../config/env.config';
 
 /**
  * ============================================================================
@@ -20,11 +21,6 @@ import { test, expect } from '../fixtures/pomFixtures';
  * to keep it focused on the pricing logic rather than performance handling.
  * The mandatory test already demonstrates glitch-user handling.
  */
-
-const CREDENTIALS = {
-  username: 'standard_user',
-  password: 'secret_sauce',
-} as const;
 
 // Select two products with different prices to make the math validation meaningful
 const PRODUCTS_TO_ADD = [
@@ -48,7 +44,7 @@ test.describe('Bonus: Checkout Price Calculation @bonus', () => {
     // ── Setup: Login and add multiple products ─────────────────────
     await test.step('Login and add products to cart', async () => {
       await loginPage.goto();
-      await loginPage.login(CREDENTIALS.username, CREDENTIALS.password);
+      await loginPage.login(ENV.STANDARD_USER, ENV.PASSWORD);
       await inventoryPage.expectToBeVisible();
 
       for (const product of PRODUCTS_TO_ADD) {

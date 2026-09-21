@@ -11,12 +11,20 @@
     "test:bonus": "npx playwright test --grep @bonus",
     "report": "npx playwright show-report"
   },
-  "keywords": ["playwright", "e2e", "testing", "saucedemo", "automation"],
+  "keywords": [
+    "playwright",
+    "e2e",
+    "testing",
+    "saucedemo",
+    "automation"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@playwright/test": "^1.50.0",
     "@types/node": "^22.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.1"
   }
 }
-

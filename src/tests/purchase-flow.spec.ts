@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/pomFixtures';
+import { ENV } from '../config/env.config';
 
 /**
  * ============================================================================
@@ -24,12 +25,6 @@ import { test, expect } from '../fixtures/pomFixtures';
  *   Go to Cart → Checkout Info → Overview → Finish → Confirmation
  */
 
-// Credentials for the glitch user (sourced from SauceDemo's login page)
-const CREDENTIALS = {
-  username: 'performance_glitch_user',
-  password: 'secret_sauce',
-} as const;
-
 // We use a specific product to make the test deterministic and readable
 const TARGET_PRODUCT = 'Sauce Labs Backpack';
 
@@ -53,7 +48,7 @@ test.describe('Mandatory: E2E Purchase Flow @mandatory', () => {
     // inside loginPage.login().
     await test.step('Login with performance_glitch_user', async () => {
       await loginPage.goto();
-      await loginPage.login(CREDENTIALS.username, CREDENTIALS.password);
+      await loginPage.login(ENV.GLITCH_USER, ENV.PASSWORD);
       await inventoryPage.expectToBeVisible();
     });
 

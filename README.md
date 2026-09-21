@@ -69,7 +69,11 @@ cd saucedemo-e2e-tests
 # 2. Install dependencies
 npm install
 
-# 3. Install Playwright browsers (Chromium, by default)
+# 3. Setup Environment Variables
+# Copy the example file and configure it if necessary.
+cp .env.example .env
+
+# 4. Install Playwright browsers (Chromium, by default)
 npx playwright install chromium
 ```
 
@@ -226,9 +230,29 @@ Playwright automatically waits for elements to be **attached**, **visible**, **s
 
 2. **No test data isolation**: SauceDemo uses a shared, stateless demo app — there's no risk of data pollution between tests. In a real-world scenario, tests would need setup/teardown hooks for data isolation.
 
-3. **Hardcoded credentials**: The `performance_glitch_user` credentials are well-known demo credentials, not secrets. In production, these would be stored in environment variables or a secrets manager.
+3. **Credentials Management**: Credentials for the test users are currently managed via a local `.env` file (and documented in `.env.example`). In a production CI/CD pipeline, these would be injected dynamically as GitHub Actions secrets (or equivalent) for maximum security.
 
 4. **Tax calculation logic**: The bonus test validates that `subtotal + tax = total` but does not verify the tax *rate* itself (e.g., that it's exactly 8%). This is because the tax rate isn't documented in SauceDemo's UI and may vary.
 
 5. **No visual regression testing**: This suite focuses on functional E2E validation. Visual regression tools (like Playwright's screenshot comparison) could be added as a complementary layer.
+
+---
+
+## 🤖 CI/CD Integration (GitHub Actions)
+
+This project is fully configured for Continuous Integration via **GitHub Actions**. 
+
+The workflow is defined in `.github/workflows/playwright.yml` and triggers automatically on `push` and `pull_request` to the `main` branch.
+
+### Secrets Configuration
+To run the pipeline successfully, you must configure the following **Repository Secrets** in your GitHub repository (*Settings > Secrets and variables > Actions*):
+
+- `SAUCE_STANDARD_USER` (e.g., `standard_user`)
+- `SAUCE_GLITCH_USER` (e.g., `performance_glitch_user`)
+- `SAUCE_PASSWORD` (e.g., `secret_sauce`)
+
+The workflow will automatically inject these secrets securely into the test runner as environment variables.
+
+### Test Reports
+If a test fails in the pipeline, GitHub Actions will automatically upload the HTML report as an **Artifact**. You can download `playwright-report.zip` from the workflow summary page to inspect traces, videos, and error logs locally.
 
