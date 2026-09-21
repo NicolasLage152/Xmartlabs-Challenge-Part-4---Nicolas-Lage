@@ -118,7 +118,7 @@ jobs:
           publish_dir: ./playwright-report
           keep_files: true
 
-         -name: 📧 Send Email Notification
+      - name: 📧 Send Email Notification
         uses: dawidd6/action-send-mail@v3
         if: always()
         with:
